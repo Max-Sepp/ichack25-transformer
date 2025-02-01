@@ -24,4 +24,6 @@ fun main() {
 
     // Print the HTML string
     println(htmlString)
+    println("-----------------------------------")
+    println(contentDiv.toString())
 }

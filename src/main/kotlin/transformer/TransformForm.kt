@@ -1,14 +1,45 @@
 package org.example.transformer
 
+import org.example.ai.getAccessibleForm
 import org.example.ai.getLabelForInput
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.util.logging.Level
 import java.util.logging.Logger
+
+const val CHANGE_WHOLE_FORM = "change-whole-form"
+
+class TransformForm(private val logger: Logger) : Transformer {
+    override fun transformAll(document: Document): List<Transformation> =
+        document
+            .select("form")
+            .map { transform(it) }
+
+
+    override fun transform(element: Element): Transformation {
+        val newAccessibleForm: String = getAccessibleForm(element.toString())
+
+        logger.log(Level.INFO, newAccessibleForm)
+
+        return Transformation(CHANGE_WHOLE_FORM, element.toString(), newAccessibleForm)
+    }
+}
 
 const val NO_INPUT_LABEL = "no-input-label"
 
 class TransformNoInputLabel(private val logger: Logger) : Transformer {
-    override fun transformAll(document: Document): List<Transformation> = TODO("Not yet implemented")
+    override fun transformAll(document: Document): List<Transformation> =
+        document
+            .select("form")
+            .flatMap { form ->
+                form
+                    .select("input")
+                    .filter {
+                        val id = it.id()
+                        form.select("label[for=$id]").isEmpty()
+                    }
+            }
+            .map { transform(it) }
 
 
     // Precondition: passed in input element does not have a label in the form
@@ -27,6 +58,8 @@ class TransformNoInputLabel(private val logger: Logger) : Transformer {
             name = inputName,
             value = inputValue,
         )
+
+        logger.log(Level.INFO, "InputLabel: $inputLabel")
 
         val newElementString: String = inputLabel + "\n" + element.text()
 
